@@ -1,6 +1,8 @@
 import os
 from random import uniform, randrange, randint
 from pathlib import Path
+
+import selenium
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium import webdriver
@@ -101,7 +103,7 @@ def look_random_products(driver):
     """
     url = driver.current_url
     action = ActionChains(driver)
-    for product in range(0, randint(2,4)):
+    for product in range(0, randint(1,2)):
         try:
             find_products = driver.find_elements_by_class_name('ref_goods_n_p')
             sleep(randrange(5))
@@ -120,7 +122,6 @@ def look_random_products(driver):
         except Exception as e:
             print(e)
             driver.get(url)
-
 
 
 def find_by_request(driver, search_request: str, products_id: list):
@@ -147,11 +148,35 @@ def go_on_product_page(driver, product_id: str):
     :param product_id: str(17503787)
     :return:
     """
-    search_field = driver.find_element_by_class_name('search-catalog__input')
-    for number in product_id:
-        search_field.send_keys(number)
-        sleep(uniform(0.14, .51))
-    search_field.send_keys(Keys.RETURN)
+    # driver.get('https://www.wildberries.ru/')
+    # search_field = driver.find_element_by_class_name('search-catalog__input')
+    # for number in product_id:
+    #     search_field.send_keys(number)
+    #     sleep(uniform(0.14, .51))
+    # search_field.send_keys(Keys.RETURN)
+    counter = 0
+    i = 0
+    while i == 0:
+        sleep(0.76)
+        all_products = driver.find_elements_by_class_name('i-dtList')
+        for product in all_products:
+            if product.get_attribute('data-catalogercod1s') == product_id:
+                product.click()
+                sleep(1)
+                i = 1
+                break
+        if i == 1:
+            break
+
+        sleep(0.5)
+        pages = driver.find_elements_by_class_name('pagination-next')
+        driver.execute_script(f"window.scrollTo(0, 2500)")
+        sleep(0.5)
+        driver.execute_script("arguments[0].click();", pages[0])
+        counter += 1
+        if counter >= 3:
+            i = 1
+            print(f'product_id {product_id}, nor found')
 
 
 def select_addresses(driver, delivery_method: str, addresses: tuple, flat: str, private_house: bool):
@@ -239,71 +264,73 @@ def make_order(driver, addresses: tuple, product_id: str, size: str,
     :return:
     """
     for id_ in product_id:
-        go_on_product_page(driver, id_)
-        driver.execute_script(f"window.scrollTo(0, {randint(300, 600)})")
-
         try:
-            sizes = driver.find_elements_by_class_name('j-size')
-            select_size = [i.find_element_by_tag_name('span') for i in sizes if size == i.find_element_by_tag_name('span').text]
-            select_size[0].click()
-        except:
-            print("cant't select size")
+            go_on_product_page(driver, id_)
+            driver.execute_script(f"window.scrollTo(0, {randint(300, 600)})")
 
-        add_to_cart = driver.find_elements_by_class_name('c-btn-main-lg-v1')
-        add_to_cart[0].click()
-        sleep(uniform(0.15, 1.51))
+            try:
+                sizes = driver.find_elements_by_class_name('j-size')
+                select_size = [i.find_element_by_tag_name('span') for i in sizes if size == i.find_element_by_tag_name('span').text]
+                select_size[0].click()
+            except:
+                print("cant't select size")
 
-        sleep(uniform(2.15, 3.51))
-        go_to_cart = driver.find_elements_by_class_name('navbar-pc__icon--basket')
-        go_to_cart[0].click()
-        sleep(uniform(2.15, 3.51))
+            add_to_cart = driver.find_elements_by_class_name('c-btn-main-lg-v1')
+            add_to_cart[0].click()
+            sleep(uniform(0.15, 1.51))
 
-        sleep(uniform(01.15, 1.51))
-        go_to_ordering = driver.find_elements_by_class_name('j-item-basket')
-        go_to_ordering[0].click()
+            sleep(uniform(2.15, 3.51))
+            go_to_cart = driver.find_elements_by_class_name('navbar-pc__icon--basket')
+            go_to_cart[0].click()
+            sleep(uniform(2.15, 3.51))
 
-        sleep(1)
-        select_addresses(driver, delivery_method, addresses, flat, private_house)
-
-        sleep(0.5)
-        try:
-            qr_code_button = driver.find_elements_by_class_name('basket-label')
-            qr_code_button[-1].click()
-        except:
-            print('qr code already selected')
-
-        try:
             sleep(uniform(01.15, 1.51))
-            field_input = driver.find_elements_by_class_name('wrap-input')
-            first_name_input = field_input[0].find_elements_by_class_name('c-input-base')[0]
-            driver.execute_script("arguments[0].scrollIntoView();", first_name_input)
-            first_name_input.send_keys(name[0])
-            sleep(uniform(01.15, 1.51))
-            second_name_input = field_input[1].find_elements_by_class_name('c-input-base')[0]
-            second_name_input.send_keys(name[1])
-            sleep(uniform(01.15, 1.51))
+            go_to_ordering = driver.find_elements_by_class_name('j-item-basket')
+            go_to_ordering[0].click()
+
+            sleep(1)
+            select_addresses(driver, delivery_method, addresses, flat, private_house)
+
+            sleep(0.5)
+            try:
+                qr_code_button = driver.find_elements_by_class_name('basket-label')
+                qr_code_button[-1].click()
+            except:
+                print('qr code already selected')
+
+            try:
+                sleep(uniform(01.15, 1.51))
+                field_input = driver.find_elements_by_class_name('wrap-input')
+                first_name_input = field_input[0].find_elements_by_class_name('c-input-base')[0]
+                driver.execute_script("arguments[0].scrollIntoView();", first_name_input)
+                first_name_input.send_keys(name[0])
+                sleep(uniform(01.15, 1.51))
+                second_name_input = field_input[1].find_elements_by_class_name('c-input-base')[0]
+                second_name_input.send_keys(name[1])
+                sleep(uniform(01.15, 1.51))
+            except Exception as e:
+                print(e)
+
+            sleep(uniform(1.15, 1.51))
+            order_accept = driver.find_element_by_class_name('c-btn-main-lg')
+            driver.execute_script("arguments[0].scrollIntoView();", order_accept)
+            sleep(0.5)
+            order_accept.click()
+
+            sleep(uniform(1.15, 1.51))
+            driver.find_element_by_class_name('alert-popup-close').click()
+
+            sleep(uniform(1.15, 1.51))
+
+            qr = qr_saver(driver)
+
+            Order.objects.create(id_product=int(id_), region=addresses[0], city=addresses[1], street=addresses[2],
+                                 house=addresses[3], phone_number=phone, search_request=search_request,
+                                 size=size, delivery_method=delivery_method,
+                                 flat=flat, private_house=private_house, created_at=datetime.now(), qr=qr)
+
         except Exception as e:
-            print(e)
-
-        sleep(uniform(1.15, 1.51))
-        order_accept = driver.find_element_by_class_name('c-btn-main-lg')
-        driver.execute_script("arguments[0].scrollIntoView();", order_accept)
-        sleep(0.5)
-        order_accept.click()
-
-        sleep(uniform(1.15, 1.51))
-        driver.find_element_by_class_name('alert-popup-close').click()
-
-        sleep(uniform(1.15, 1.51))
-
-        qr = qr_saver(driver)
-
-        Order.objects.create(id_product=int(id_), region=addresses[0], city=addresses[1], street=addresses[2],
-                             house=addresses[3], phone_number=phone, search_request=search_request,
-                             size=size, delivery_method=delivery_method,
-                             flat=flat, private_house=private_house, created_at=datetime.now(), qr=qr)
-
-
+            print(e, f'cant make order for product id {id_}')
 
 
 def qr_saver(driver):
@@ -330,21 +357,22 @@ def qr_saver(driver):
 def main():
     phone = '9372268793'
     search_request = 'ремень'
-    product_id = ['17503787']
-    size = '125'
+    product_id = ['12899694']
+    size = '110'
     delivery_method = 'courier'  # or point
+    # todo сделать
     name = ('Вася', 'Пупкин')
     addresses = ('Саратовская область', 'г Балаково', 'Саратовское Шоссе', '39')
     flat = '123'
     private_house = True
     driver_obj = Chromedriver()
-    driver = driver_obj.start_driver(str(bd)+'/chromedriver')
+    driver = driver_obj.start_driver(str(bd) + '/chromedriver')
     registration(driver, phone)
-    # find_by_request(driver, search_request, product_id)
-    # look_random_products(driver)
+    find_by_request(driver, search_request, product_id)
+    look_random_products(driver)
     make_order(driver, addresses, product_id, size,
     delivery_method, flat, private_house, name, phone, search_request)
-
+    driver.quit()
 
 if __name__ == '__main__':
     main()
