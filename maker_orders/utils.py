@@ -45,6 +45,7 @@ def registration(driver, phone_number: str):
     :param phone_number: 79371234567
     :return: authorization in wildberries inside driver session
     """
+    sleep(uniform(3.15, 5.51))
     if phone_number == 'None':
         phone_number = take_free_number()
 
@@ -124,21 +125,20 @@ def look_random_products(driver):
             driver.get(url)
 
 
-def find_by_request(driver, search_request: str, products_id: list):
+def find_by_request(driver, search_request: str):
     """
     imitate buy for every product_id
     :param search_request: ремень
     :param products_id: 1236324
     :param driver: authorized session selenium
     """
-    for product_id in products_id:
-        driver.get('https://www.wildberries.ru/')
-        sleep(uniform(0.93, 5.44))
-        search_field = driver.find_element_by_class_name('search-catalog__input')
-        for letter in search_request:
-            search_field.send_keys(letter)
-            sleep(uniform(0.15, 1.51))
-        search_field.send_keys(Keys.RETURN)
+    driver.get('https://www.wildberries.ru/')
+    sleep(uniform(0.93, 5.44))
+    search_field = driver.find_element_by_class_name('search-catalog__input')
+    for letter in search_request:
+        search_field.send_keys(letter)
+        sleep(uniform(0.15, 1.51))
+    search_field.send_keys(Keys.RETURN)
 
 
 def go_on_product_page(driver, product_id: str):
@@ -251,7 +251,7 @@ def select_addresses(driver, delivery_method: str, addresses: tuple, flat: str, 
         submit_addresses.click()
 
 
-def make_order(driver, addresses: tuple, product_id: str, size: str,
+def make_order(driver, addresses: tuple, product_id: list, size: str,
                delivery_method:str, flat: str, private_house: bool, name: tuple,
                phone: str, search_request: str):
     """
@@ -354,6 +354,53 @@ def qr_saver(driver):
     return qr_b64
 
 
+def put_like_the_product(driver, search_request: str, profile_id: list):
+    """
+    put like posts, by search requests, and browses several random products
+    :param driver: instance selenium webdriver on home page
+    :param search_request: ['124', ...]
+    :param profile_id: 'ремень'
+    """
+    for id_ in profile_id:
+        sleep(uniform(1.15, 1.51))
+        find_by_request(driver, search_request)
+        look_random_products(driver)
+        go_on_product_page(driver, id_)
+        try:
+            driver.find_elements_by_class_name('to-poned')[0].click()
+        except Exception as e:
+            print(e)
+
+
+def ask_questions(driver, search_request: str, product_id: list, question: str):
+    """
+    every product id find by search requests, browses several random products,go on product page ans asl question
+    :param driver:
+    :param search_request:
+    :param product_id:
+    :param question:
+    :return:
+    """
+    for id_ in product_id:
+        find_by_request(driver, search_request)
+        look_random_products(driver)
+        go_on_product_page(driver, id_)
+        try:
+            sleep(uniform(1.15, 1.51))
+            footer_tabs = driver.find_element_by_class_name('comments-tabs').find_element_by_id('a-Questions')
+            footer_tabs.click()
+            input_field = driver.find_element_by_class_name('val-msg')
+            driver.execute_script("arguments[0].scrollIntoView();", input_field)
+            for i in question:
+                input_field.send_keys(i)
+                sleep(uniform(.15, .51))
+            input_field.click()
+            button_send = driver.find_element_by_class_name('post-data')
+            button_send.click()
+        except Exception as e:
+            print(e)
+
+
 def main():
     phone = '9372268793'
     search_request = 'ремень'
@@ -363,16 +410,18 @@ def main():
     # todo сделать
     name = ('Вася', 'Пупкин')
     addresses = ('Саратовская область', 'г Балаково', 'Саратовское Шоссе', '39')
+    question = 'Когда будет новое поступление?'
     flat = '123'
     private_house = True
     driver_obj = Chromedriver()
     driver = driver_obj.start_driver(str(bd) + '/chromedriver')
     registration(driver, phone)
-    find_by_request(driver, search_request, product_id)
+    find_by_request(driver, search_request)
     look_random_products(driver)
     make_order(driver, addresses, product_id, size,
     delivery_method, flat, private_house, name, phone, search_request)
     driver.quit()
+
 
 if __name__ == '__main__':
     main()
