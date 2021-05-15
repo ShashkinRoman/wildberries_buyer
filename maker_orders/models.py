@@ -14,6 +14,7 @@ class User(models.Model):
 class Search_request(models.Model):
     """Requests for which will be all activity with products by several phone number"""
     user_id = models.ForeignKey('User', on_delete=models.CASCADE, related_name='rn_user_inside_search_request')
+    # todo узнать почему можно записать только id, а не инстанс класса Producr
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='rn_product_inside_search_request')
     request = models.CharField(max_length=255)
 
@@ -21,7 +22,7 @@ class Search_request(models.Model):
 class Product(models.Model):
     """Product for which will be all activity"""
     user_id = models.ForeignKey('User', on_delete=models.CASCADE, related_name='rn_user_inside_product')
-    id_product = models.IntegerField()
+    id_product = models.CharField(max_length=255)
     search_requests = models.ManyToManyField(Search_request, related_name='rn_search_request_inside_product')
 
 
@@ -48,13 +49,15 @@ class ActionWithProduct(models.Model):
         'Product', on_delete=models.CASCADE, related_name='rn_product_inside_action_with_product')
     action_type = models.CharField(max_length=5, choices=ACTION_WITH_PRODUCTS_CHOICES, blank=True)
     created_at = models.DateTimeField(default=datetime.now())
+    search_request = models.ForeignKey('Search_request', on_delete=models.CASCADE,
+                                     related_name='rn_search_request_action_with_product', default='')
 
 
 class Phone(models.Model):
     """Phones from sms-activate with dates and activity"""
-    phone_number = models.CharField(max_length=11)
+    phone_number = models.CharField(max_length=11, unique=True)
     start_rent_date = models.DateTimeField(default=datetime.now())
-    end_rent_date = models.DateTimeField(blank=True)
+    end_rent_date = models.DateTimeField(blank=True, unique=True)
     actions = models.ManyToManyField(ActionWithProduct)
 
 
@@ -74,7 +77,6 @@ class Order(models.Model):
     # quantity = models.SmallIntegerField()
     search_request = models.ForeignKey('Search_request', on_delete=models.CASCADE,
                                        related_name='rn_search_request_inside_order')
-    # product_id = models.CharField(max_length=255)
     size = models.CharField(max_length=255)
     delivery_method = models.CharField(max_length=255)
     flat = models.CharField(max_length=255)

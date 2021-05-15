@@ -1,12 +1,7 @@
-import os
 from random import uniform, randrange, randint
-from pathlib import Path
-
-import selenium
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium import webdriver
-from selenium.webdriver.chrome import service
 from dotenv import load_dotenv
 from time import sleep
 from selenium.webdriver.common.keys import Keys
@@ -14,8 +9,9 @@ from wildberries_buyer.settings import BASE_DIR as bd
 from PIL import Image
 import base64
 from io import BytesIO
-from maker_orders.models import Order
+
 from datetime import datetime
+from maker_orders.models import Search_request, Phone, ActionWithProduct, Product, Order, User
 load_dotenv()
 
 
@@ -401,10 +397,24 @@ def ask_questions(driver, search_request: str, product_id: list, question: str):
             print(e)
 
 
+def ask_question_by_settings(driver, search_request, product_id, question):
+    try:
+        phone = Phone.objects.filter()
+    except:
+
+    registration(driver, phone.phone_number)
+    find_by_request(driver, search_request.request)
+    look_random_products(driver)
+    go_on_product_page(driver, product_id)
+    ask_questions(driver, search_request, product_id, question)
+
+
+
 def main():
-    phone = '9372268793'
-    search_request = 'ремень'
-    product_id = ['12899694']
+    # todo add change name after registration
+    phone = Phone.objects.get(phone_number='9372268793')
+    search_request =Search_request.objects.get(request='ремень')
+    product_id = Product.objects.get(id_product='6109083')
     size = '110'
     delivery_method = 'courier'  # or point
     # todo сделать
@@ -415,11 +425,16 @@ def main():
     private_house = True
     driver_obj = Chromedriver()
     driver = driver_obj.start_driver(str(bd) + '/chromedriver')
-    registration(driver, phone)
-    find_by_request(driver, search_request)
+    registration(driver, phone.phone_number)
+    find_by_request(driver, search_request.request)
     look_random_products(driver)
+    go_on_product_page(driver, product_id)
+    ask_questions(driver, search_request, product_id, question)
+
+
     make_order(driver, addresses, product_id, size,
     delivery_method, flat, private_house, name, phone, search_request)
+
     driver.quit()
 
 
