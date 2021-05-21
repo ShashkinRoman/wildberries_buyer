@@ -76,7 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'wildberries_buyer123.wsgi.application'
+WSGI_APPLICATION = 'wildberries_buyer.wsgi.application'
 
 
 # Database

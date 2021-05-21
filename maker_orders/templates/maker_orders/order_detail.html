@@ -1,0 +1,19 @@
+{% extends 'maker_orders/base_block.html' %}
+
+
+{% block content %}
+    <p>Артикул продукта - {{ order.id_product.id_product }}</p>
+    <p>Дата заказа - {{ order.created_at }}</p>
+    <p> Адрес - {{ order.region }}, {{ order.city }},
+        {{ order.street }}, {{ order.house }}</p>
+    <p>Телефон, на который сделан заказ - {{ order.phone_number.phone_number }}</p>
+    <p>Поисковый запрос - {{ order.search_request.request }}</p>
+    <p>Размер - {{ order.size }}</p>
+    <p>Способ доставки - {{ order.delivery_method }}</p>
+    <p>Квартира - {{ order.flat }}</p>
+    <p>Частный дом - {{ order.private_house }}</p>
+    <p>QR код для оплаты - {{ order.qr }}</p>
+    <p>Владелец заказа - {{ order.owner.first_name }} {{ order.owner.second_name}}</p>
+    <p>Статус заказа - {{ order.order_status }}</p>
+
+{% endblock %}

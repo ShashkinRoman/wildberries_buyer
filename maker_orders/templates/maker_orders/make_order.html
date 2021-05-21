@@ -1,0 +1,18 @@
+{% extends 'maker_orders/base_block.html' %}
+
+
+{% block content %}
+    {% for order_ in order %}
+        <div class="card">
+      <div class="card-header">
+        {{ order_.id_product.id_product }}
+      </div>
+      <div class="card-body">
+        <h5 class="card-title">{{ order_.id_product.id_product }}</h5>
+        <p class="card-text"> {{ order_.order_status }}</p>
+        <a href="{{ order_.owner_id.get_absolute_url   }}" class="btn btn-primary">Посмотреть детали
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+{% endblock %}

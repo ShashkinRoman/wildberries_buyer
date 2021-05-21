@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import datetime
+from django.shortcuts import reverse
 # Create your models here.
 
 
@@ -9,6 +10,9 @@ class User(models.Model):
     second_name = models.CharField(max_length=255, blank=True)
     mail = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=11, blank=True)
+
+    def get_absolute_url(self):
+        return reverse('order_detail_url', kwargs={'user_id': self.id})
 
 
 class Search_request(models.Model):
@@ -32,8 +36,8 @@ class ActionWithProduct(models.Model):
     FAVORITES = 'fv'
     BRAND_FAVORITES = 'bfv'
     ORDER = 'or'
-    QUESTIONS = 'qw'
-    REVIEW = 're'
+    QUESTIONS = 'qs'
+    REVIEW = 'rv'
     ACTION_WITH_PRODUCTS_CHOICES = [
         (LIKE, 'like'),
         (FAVORITES, 'favorites'),
@@ -50,15 +54,24 @@ class ActionWithProduct(models.Model):
     action_type = models.CharField(max_length=5, choices=ACTION_WITH_PRODUCTS_CHOICES, blank=True)
     created_at = models.DateTimeField(default=datetime.now())
     search_request = models.ForeignKey('Search_request', on_delete=models.CASCADE,
-                                     related_name='rn_search_request_action_with_product', default='')
+                                       related_name='rn_search_request_action_with_product', default='')
 
 
 class Phone(models.Model):
     """Phones from sms-activate with dates and activity"""
+    ONE_SMS = 'sms'
+    RENT = 'rent'
+    DEACTIVATE = 'dc'
+    STATUS_RENT_CHOICES = [
+        (ONE_SMS, 'one_sms_rent'),
+        (RENT, 'daily_rent'),
+        (DEACTIVATE, 'deactivate')
+    ]
     phone_number = models.CharField(max_length=11, unique=True)
     start_rent_date = models.DateTimeField(default=datetime.now())
-    end_rent_date = models.DateTimeField(blank=True, unique=True)
-    actions = models.ManyToManyField(ActionWithProduct)
+    end_rent_date = models.DateTimeField(blank=True)
+    status_rent = models.CharField(max_length=5, choices=STATUS_RENT_CHOICES, blank=True)
+    # actions = models.ManyToManyField(ActionWithProduct)
 
 
 # todo change fields city, region, addresses on foreignkey
@@ -84,6 +97,32 @@ class Order(models.Model):
     # date_buyout = models.DateTimeField(blank=True)
     created_at = models.DateTimeField(blank=True)
     qr = models.CharField(max_length=150000, blank=True)
+    SUCCESS = 'sc'
+    ORDERED = 'or'
+    DELIVERY = 'dl'
+    DELIVERED = 'dld'
+
+    ORDER_STATUS_CHOICES = [
+        (SUCCESS, 'success'),
+        (ORDERED, 'ordered'),
+        (DELIVERY, 'delivery'),
+        (DELIVERED, 'delivered')
+    ]
+
+    order_status = models.CharField(max_length=5, choices=ORDER_STATUS_CHOICES, blank=True)
+
+    def get_absolute_url(self):
+        return reverse('order_detail_url', kwargs={'user_id': self.id})
 
     def __str__(self):
         return f'{self.id_product} {self.region} {self.city} {self.search_request}'
+
+
+
+class ReviewAndQuestions(models.Model):
+    action_id = models.ForeignKey('ActionWithProduct', on_delete=models.CASCADE,
+                                  related_name='rn_action_with_product_inside_review')
+    review_text = models.CharField(max_length=2000)
+# class Brand(models.Model):
+#     name = models.CharField(max_length=255)
+#     url = models.CharField(max_length=3000)
