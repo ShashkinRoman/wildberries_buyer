@@ -1,11 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-{#    {{ form }}#}
-</head>
-<body>
+{% extends 'maker_orders/base_block.html' %}
 
-</body>
-</html>
+{% block content %}
+
+    <form action="{% url 'user_create_url' %}" method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                {% if field.errors %}
+                    <div class="alert alert-danger">
+                        {{ field.errors }}
+
+                    </div>
+                {% endif %}
+
+                {{ field.label }}
+                {{ field }}
+             </div>
+
+{#        {% endblock %}#}
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Registration</button>
+    </form>
+{% endblock %}

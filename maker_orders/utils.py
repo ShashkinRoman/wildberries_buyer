@@ -1,3 +1,5 @@
+import sys
+import os
 from random import uniform, randrange, randint
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -10,7 +12,9 @@ from PIL import Image
 import base64
 from io import BytesIO
 from datetime import datetime, date, timedelta
-from maker_orders.models import Search_request, Phone, ActionWithProduct, Product, Order, User
+from maker_orders.models import SearchRequest, Phone, ActionWithProduct, Product, Order, User
+from twocaptcha import TwoCaptcha
+
 load_dotenv()
 
 
@@ -51,11 +55,20 @@ def registration(driver, phone_number: str):
     sleep(0.5)
     button_get_code = driver.find_elements_by_class_name('i-form-block-v1')
     button_get_code[-1].click()
-    captcha_image = driver.find_element_by_class_name('captcha-image').get_attribute('src')
-    # captcha_text = captcha(captcha_image)
-    # driver.find_element_by_class_name('captcha-input').send_keys(captcha_text)
-    button_next = driver.find_elements_by_class_name('i-form-block-v1')
-    button_next[1].click()
+    try:
+        captcha_image = driver.find_element_by_class_name('captcha-image').get_attribute('src')
+        captcha_text = captcha(captcha_image)
+        for i in captcha_text.get('code'):
+            driver.find_element_by_class_name('captcha-input').send_keys(i)
+            sleep(uniform(0.15, 1.51))
+        button_next = driver.find_elements_by_class_name('i-form-block-v1')
+        button_next[1].click()
+
+    except Exception as e:
+        print(e)
+
+
+
     print("введите номер")
     field_code = driver.find_elements_by_class_name('input-item')
     # field_code[1].send_keys(code_registration(phone_number))
@@ -70,14 +83,18 @@ def registration(driver, phone_number: str):
 #     return ''
 
 
-# todo add recaptcha decoding
-# def captcha(captcha_image):
-#     """
-#     return free number from sms-activate
-#     :return: str(ExAmPlE)"""
-#     print("Input captcha wait 20 sec")
-#     sleep(20)
-    # return ''
+def captcha(captcha_image):
+    """
+    return free number from sms-activate
+    :return: str(ExAmPlE)"""
+    api_key = os.getenv('YOUR_API_KEY')
+    solver = TwoCaptcha(api_key)
+    try:
+        result = solver.normal(captcha_image)
+    except Exception as e:
+        result =''
+        print(e)
+    return result
 
 
 # todo add sms-activate
@@ -534,16 +551,16 @@ def change_name_profile(driver, name: list):
 
 def main():
     phone = Phone.objects.get(phone_number='9372268793')
-    search_request = Search_request.objects.get(request='ремень')
+    search_request = SearchRequest.objects.get(request='ремень')
     product_id = Product.objects.get(id_product='6109083') # 6109083 26541585
     size = '110'
     delivery_method = 'courier'  # or point
 
     # todo сделать скрипт для постановки лайка бренду
-    # todo скрипт добавления в избранное
-
+    # todo добавить пол в аккаунт
     # todo добавить выбор номера для заказа и добавления действия в корзину
     # todo сделать скрипт проверки статуса
+    # todo добавить автоматическую генерацию имен
 
     name = ('Вася', 'Пупкин')
     addresses = ('Саратовская область', 'г Балаково', 'Саратовское Шоссе', '39')

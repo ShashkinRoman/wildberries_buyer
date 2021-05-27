@@ -1,23 +1,18 @@
 from django.db import models
 from datetime import datetime
 from django.shortcuts import reverse
+from django.contrib.auth.models import User
 # Create your models here.
 
 
-class User(models.Model):
-    """Owner, who will be make orders"""
-    first_name = models.CharField(max_length=255, blank=True)
-    second_name = models.CharField(max_length=255, blank=True)
-    mail = models.CharField(max_length=255)
-    phone_number = models.CharField(max_length=11, blank=True)
-
-    def get_absolute_url(self):
-        return reverse('order_detail_url', kwargs={'user_id': self.id})
+# class UserModel(User):
+#     """Owner, who will be make orders"""
+#     phone_number = models.CharField(max_length=11, blank=True, unique=True)
 
 
-class Search_request(models.Model):
+class SearchRequest(models.Model):
     """Requests for which will be all activity with products by several phone number"""
-    user_id = models.ForeignKey('User', on_delete=models.CASCADE, related_name='rn_user_inside_search_request')
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rn_user_inside_search_request')
     # todo узнать почему можно записать только id, а не инстанс класса Producr
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='rn_product_inside_search_request')
     request = models.CharField(max_length=255)
@@ -25,9 +20,9 @@ class Search_request(models.Model):
 
 class Product(models.Model):
     """Product for which will be all activity"""
-    user_id = models.ForeignKey('User', on_delete=models.CASCADE, related_name='rn_user_inside_product')
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rn_user_inside_product')
     id_product = models.CharField(max_length=255)
-    search_requests = models.ManyToManyField(Search_request, related_name='rn_search_request_inside_product')
+    search_requests = models.ManyToManyField(SearchRequest, related_name='rn_search_request_inside_product')
 
 
 class ActionWithProduct(models.Model):
@@ -53,7 +48,7 @@ class ActionWithProduct(models.Model):
         'Product', on_delete=models.CASCADE, related_name='rn_product_inside_action_with_product')
     action_type = models.CharField(max_length=5, choices=ACTION_WITH_PRODUCTS_CHOICES, blank=True)
     created_at = models.DateTimeField(default=datetime.now())
-    search_request = models.ForeignKey('Search_request', on_delete=models.CASCADE,
+    search_request = models.ForeignKey('SearchRequest', on_delete=models.CASCADE,
                                        related_name='rn_search_request_action_with_product', default='')
 
 
@@ -67,6 +62,7 @@ class Phone(models.Model):
         (RENT, 'daily_rent'),
         (DEACTIVATE, 'deactivate')
     ]
+    id_rent = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=11, unique=True)
     start_rent_date = models.DateTimeField(default=datetime.now())
     end_rent_date = models.DateTimeField(blank=True)
@@ -77,7 +73,7 @@ class Phone(models.Model):
 # todo change fields city, region, addresses on foreignkey
 class Order(models.Model):
     """Save all order information and qr for payment in base64"""
-    owner = models.ForeignKey('User', on_delete=models.CASCADE,
+    owner = models.ForeignKey(User, on_delete=models.CASCADE,
                               related_name='rn_user_inside_order', null=True)
     id_product = models.ForeignKey('Product', on_delete=models.CASCADE,
                                    related_name='rn_products_inside_order')
@@ -86,14 +82,14 @@ class Order(models.Model):
     street = models.CharField(max_length=255)
     house = models.CharField(max_length=255)
     phone_number = models.ForeignKey('Phone', on_delete=models.CASCADE,
-                                     related_name='rn_phone_inside_order')
+                                     related_name='orders')
     # quantity = models.SmallIntegerField()
-    search_request = models.ForeignKey('Search_request', on_delete=models.CASCADE,
-                                       related_name='rn_search_request_inside_order')
+    search_request = models.ForeignKey('SearchRequest', on_delete=models.CASCADE,
+                                       related_name='orders')
     size = models.CharField(max_length=255)
     delivery_method = models.CharField(max_length=255)
-    flat = models.CharField(max_length=255)
-    private_house = models.BooleanField(default=False)
+    flat = models.CharField(max_length=255, blank=True)
+    private_house = models.BooleanField(default=False, blank=True)
     # date_buyout = models.DateTimeField(blank=True)
     created_at = models.DateTimeField(blank=True)
     qr = models.CharField(max_length=150000, blank=True)
@@ -116,7 +112,6 @@ class Order(models.Model):
 
     def __str__(self):
         return f'{self.id_product} {self.region} {self.city} {self.search_request}'
-
 
 
 class ReviewAndQuestions(models.Model):
