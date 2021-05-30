@@ -10,6 +10,11 @@ from django.contrib.auth.models import User
 #     phone_number = models.CharField(max_length=11, blank=True, unique=True)
 
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    phone_number = models.CharField(max_length=11, blank=True)
+
+
 class SearchRequest(models.Model):
     """Requests for which will be all activity with products by several phone number"""
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rn_user_inside_search_request')
@@ -33,6 +38,7 @@ class ActionWithProduct(models.Model):
     ORDER = 'or'
     QUESTIONS = 'qs'
     REVIEW = 'rv'
+    AD_TO_CART = 'atc'
     ACTION_WITH_PRODUCTS_CHOICES = [
         (LIKE, 'like'),
         (FAVORITES, 'favorites'),
@@ -40,6 +46,7 @@ class ActionWithProduct(models.Model):
         (ORDER, 'order'),
         (QUESTIONS, 'questions'),
         (REVIEW, 'review'),
+        (AD_TO_CART, 'ad_to_cart')
     ]
 
     phone_number = models.ForeignKey('Phone', on_delete=models.CASCADE,

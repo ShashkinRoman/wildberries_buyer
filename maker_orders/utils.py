@@ -7,6 +7,8 @@ from selenium.webdriver.common.action_chains import ActionChains
 from dotenv import load_dotenv
 from time import sleep
 from selenium.webdriver.common.keys import Keys
+
+from maker_orders.sms_activate import get_code, key
 from wildberries_buyer.settings import BASE_DIR as bd
 from PIL import Image
 import base64
@@ -38,52 +40,96 @@ class Chromedriver():
         return self.driver
 
 
-def registration(driver, phone_number: str):
+def registration(driver, phone):
     """
     :param driver: open session selenium webdriver
-    :param phone_number: 79371234567
+    :param phone: instance Phone
     :return: authorization in wildberries inside driver session
     """
     sleep(uniform(3.15, 5.51))
-
+    phone_number = phone.phone_number[1:11]
     driver.get('https://www.wildberries.ru/')
+    sleep(uniform(1.15, 3.51))
     driver.find_elements_by_class_name('navbar-pc__item')[1].click()
-    sleep(0.5)
+    sleep(uniform(3.15, 5.51))
     for number in phone_number:
-        driver.find_elements_by_class_name('input-item')[0].send_keys(f'{number}')
+        driver.find_elements_by_class_name('input-item')[0].send_keys(number)
         sleep(uniform(0.15, 1.51))
     sleep(0.5)
     button_get_code = driver.find_elements_by_class_name('i-form-block-v1')
     button_get_code[-1].click()
+    sleep(uniform(3.15, 5.51))
+
+    # input captcha
     try:
-        captcha_image = driver.find_element_by_class_name('captcha-image').get_attribute('src')
-        captcha_text = captcha(captcha_image)
-        for i in captcha_text.get('code'):
-            driver.find_element_by_class_name('captcha-input').send_keys(i)
-            sleep(uniform(0.15, 1.51))
-        button_next = driver.find_elements_by_class_name('i-form-block-v1')
-        button_next[1].click()
+        sleep(uniform(3.15, 5.51))
+        # if driver.find_elements_by_class_name('login-block-title')[0].text == 'Войти или создать профиль':
+        captcha_text_ = captcha_solver(driver)
+        captcha_text_writer(driver, captcha_text_)
 
     except Exception as e:
+        if driver.find_elements_by_class_name('login-block-title')[1].text == 'Введите код':
+            pass
+        else:
+            print(e)
+    sleep(uniform(63.15, 65.51))
+
+    # input sms code
+    try:
+        # if driver.find_elements_by_class_name('login-block-title')[1].text == 'Введите код':
+        code = get_code(key, phone)
+        field_code = driver.find_elements_by_class_name('input-item')
+        for i in code:
+            field_code[1].send_keys(i)
+            sleep(uniform(0.15, 1.51))
+        try:
+            if driver.find_elements_by_class_name('field-validation-error')[1].text == 'Неверный код':
+                driver.find_elements_by_class_name('input-submit')[-1].click()
+                sleep(uniform(1.15, 1.51))
+                # try solve captcha
+                try:
+                    captcha_text_ = captcha_solver(driver)
+                    captcha_text_writer(driver, captcha_text_)
+                except:
+                    pass
+                sleep(uniform(1.15, 1.51))
+
+                # clean code in input field
+                input_field = driver.find_element_by_class_name('j-input-confirm-code')
+                input_field.click()
+                input_field.send_keys(Keys.CONTROL + "a")
+                input_field.send_keys(Keys.DELETE)
+
+                sleep(uniform(63.15, 65.51))
+                code = get_code(key, phone)
+                field_code = driver.find_elements_by_class_name('input-item')
+                for i in code:
+                    field_code[1].send_keys(i)
+                    sleep(uniform(0.15, 1.51))
+
+
+        except:
+            pass
+
+
+    except Exception as e:
+
         print(e)
 
 
+def captcha_text_writer(driver, captcha_text_):
+    for i in captcha_text_.get('code'):
+        driver.find_element_by_class_name('captcha-input').send_keys(i)
+        sleep(uniform(0.15, 1.51))
+        field_code = driver.find_elements_by_class_name('input-item')
 
-    print("введите номер")
-    field_code = driver.find_elements_by_class_name('input-item')
-    # field_code[1].send_keys(code_registration(phone_number))
+        field_code[1].send_keys()
 
-
-# todo add sms-activate
-# def take_free_number():
-#     """
-#     return free number from sms-activate
-#     :return: 9271234567
-#     """
-#     return ''
+    button_next = driver.find_elements_by_class_name('i-form-block-v1')
+    button_next[1].click()
 
 
-def captcha(captcha_image):
+def captcha_text(captcha_image):
     """
     return free number from sms-activate
     :return: str(ExAmPlE)"""
@@ -92,28 +138,29 @@ def captcha(captcha_image):
     try:
         result = solver.normal(captcha_image)
     except Exception as e:
-        result =''
+        result = ''
         print(e)
     return result
 
 
-# todo add sms-activate
-# def code_registration(phone):
-#     """
-#     request sms code for phone number from sms-activate
-#     :param phone: 9271234567
-#     :return: str(123654)
-#     """
-#     pass
+def captcha_solver(driver):
+    """
+    find and solve captcha in authorization
+    :param driver: instance driver with o[en page with captcha in authorization
+    :return:
+    """
+    captcha_image = driver.find_element_by_class_name('captcha-image').get_attribute('src')
+    text = captcha_text(captcha_image)
+    return text
 
 
 def look_random_products(driver):
     """
-    click on random 2-4 products on page scrolling page, ant returned to original page
-    :param driver: selenium webdriver instance with open page
+    click on random 1-2 products on page scrolling page, ant returned to original page
+    :param driver: selenium webdriver instance with open page by search request
     """
     url = driver.current_url
-    action = ActionChains(driver)
+    ActionChains(driver)
     for product in range(0, randint(1,2)):
         try:
             find_products = driver.find_elements_by_class_name('ref_goods_n_p')
@@ -177,9 +224,9 @@ def go_on_product_page(driver, product_id: str):
         sleep(0.5)
         driver.execute_script("arguments[0].click();", pages[0])
         counter += 1
-        if counter >= 3:
+        if counter >= 100:
             i = 1
-            print(f'product_id {product_id}, nor found')
+            print(f'product_id {product_id}, not found')
 
 
 def select_addresses(driver, delivery_method: str, addresses: tuple, flat: str, private_house: bool):
@@ -254,11 +301,31 @@ def select_addresses(driver, delivery_method: str, addresses: tuple, flat: str, 
         submit_addresses.click()
 
 
-def make_order(driver, addresses: tuple, product_id, size: str,
-               delivery_method:str, flat: str, private_house: bool, name: tuple,
-               search_request):
+def ad_to_cart(driver, size):
     """
-    adding product to cart and purchase order
+    select size and ad to cart product
+    :param driver: instance driver with open product page
+    :return:
+    """
+    driver.execute_script(f"window.scrollTo(0, {randint(300, 600)})")
+    if size != '':
+        try:
+            sizes = driver.find_elements_by_class_name('j-size')
+            select_size = [i.find_element_by_tag_name('span') for i in sizes if
+                           size == i.find_element_by_tag_name('span').text]
+            select_size[0].click()
+        except:
+            print("cant't select size")
+
+    add_to_cart = driver.find_elements_by_class_name('c-btn-main-lg-v1')
+    add_to_cart[0].click()
+    sleep(uniform(0.15, 1.51))
+
+
+def make_order(driver, addresses: tuple, product_id, size: str,
+               delivery_method:str, flat: str, private_house: bool, name: tuple):
+    """
+     go to cart and purchase order
     :param driver: instance webdriver with open product page
     :param addresses:
     :param product_id: instance Product
@@ -267,21 +334,6 @@ def make_order(driver, addresses: tuple, product_id, size: str,
     :return:
     """
     try:
-        phone = find_phone(product_id.id_product, 'or')
-        go_on_product_page(driver, product_id.id_product)
-        driver.execute_script(f"window.scrollTo(0, {randint(300, 600)})")
-
-        try:
-            sizes = driver.find_elements_by_class_name('j-size')
-            select_size = [i.find_element_by_tag_name('span') for i in sizes if size == i.find_element_by_tag_name('span').text]
-            select_size[0].click()
-        except:
-            print("cant't select size")
-
-        add_to_cart = driver.find_elements_by_class_name('c-btn-main-lg-v1')
-        add_to_cart[0].click()
-        sleep(uniform(0.15, 1.51))
-
         sleep(uniform(2.15, 3.51))
         go_to_cart = driver.find_elements_by_class_name('navbar-pc__icon--basket')
         go_to_cart[0].click()
@@ -327,19 +379,6 @@ def make_order(driver, addresses: tuple, product_id, size: str,
 
         sleep(uniform(1.15, 1.51))
 
-        qr = qr_saver(driver)
-
-        Order.objects.create(id_product=product_id, region=addresses[0], city=addresses[1], street=addresses[2],
-                             house=addresses[3], phone_number=phone, search_request=search_request,
-                             size=size, delivery_method=delivery_method,
-                             flat=flat, private_house=private_house, created_at=datetime.now(), qr=qr)
-
-        action_question = ActionWithProduct.objects.create(action_type='or',
-                                                           phone_number_id=phone.id,
-                                                           product_id=product_id.id,
-                                                           search_request=search_request)
-        phone.rn_phone_inside_action_with_product.add(action_question)
-
     except Exception as e:
         print(e, f'cant make order for product id {product_id.id_product}')
 
@@ -365,7 +404,7 @@ def qr_saver(driver):
     return qr_b64
 
 
-def put_like_the_product(driver, search_request, product_id):
+def put_like_the_product_on_page(driver):
     """
     put like posts, by search requests, and browses several random products
     :param driver: instance selenium webdriver logout wildberries
@@ -373,63 +412,30 @@ def put_like_the_product(driver, search_request, product_id):
     :param product_id: instance Product
     """
     try:
-        phone = find_phone(product_id, 'lk')
-        registration(driver, phone.phone_number)
-        sleep(uniform(1.15, 1.51))
-        find_by_request(driver, search_request.request)
-        look_random_products(driver)
-        go_on_product_page(driver, product_id.id_product)
-        try:
-            driver.find_elements_by_class_name('to-poned')[0].click()
-        except Exception as e:
-            print(e)
-
-        action_question = ActionWithProduct.objects.create(action_type='lk',
-                                                           phone_number_id=phone.id,
-                                                           product_id=product_id.id,
-                                                           search_request=search_request)
-        phone.rn_phone_inside_action_with_product.add(action_question)
-
+        driver.find_elements_by_class_name('to-poned')[0].click()
     except Exception as e:
         print(e)
 
 
-def ask_questions(driver, search_request, product_id, question: str):
+def ask_questions(driver, question: str):
     """
     by product id find by search requests, browses several random products,go on product page ans asl question
     :param driver: instance selenium webdriver logout wildberries
-    :param search_request: instance Search_request
-    :param product_id: instance Product
-    :param question:
+    :param question: string
     :return:
     """
     try:
-        phone = find_phone(product_id.id_product, 'qs')
-        registration(driver, phone.phone_number)
-        find_by_request(driver, search_request.request)
-        look_random_products(driver)
-        go_on_product_page(driver, product_id.id_product)
-        try:
-            sleep(uniform(1.15, 1.51))
-            footer_tabs = driver.find_element_by_class_name('comments-tabs').find_element_by_id('a-Questions')
-            footer_tabs.click()
-            input_field = driver.find_element_by_class_name('val-msg')
-            driver.execute_script("arguments[0].scrollIntoView();", input_field)
-            for i in question:
-                input_field.send_keys(i)
-                sleep(uniform(.15, .51))
-            input_field.click()
-            button_send = driver.find_element_by_class_name('post-data')
-            button_send.click()
-        except Exception as e:
-            print(e)
-        action_question = ActionWithProduct.objects.create(action_type='qw',
-                                                           phone_number_id=phone,
-                                                           product_id=product_id,
-                                                           search_request=search_request)
-
-        phone.rn_phone_inside_action_with_product.add(action_question)
-
+        sleep(uniform(1.15, 1.51))
+        footer_tabs = driver.find_element_by_class_name('comments-tabs').find_element_by_id('a-Questions')
+        footer_tabs.click()
+        input_field = driver.find_element_by_class_name('val-msg')
+        driver.execute_script("arguments[0].scrollIntoView();", input_field)
+        for i in question:
+            input_field.send_keys(i)
+            sleep(uniform(.15, .51))
+        input_field.click()
+        button_send = driver.find_element_by_class_name('post-data')
+        button_send.click()
     except Exception as e:
         print(e)
 
@@ -441,12 +447,12 @@ def find_phone(product_id, action_type):
     :param action_type: str: lk' or 'fv' or 'bfv' or 'qs' or 'or' or 'rv'
     :return:
     """
-    if action_type == 'lk' or 'fv' or 'bfv' or 'qs': # action = like OR favorites OR brand_favorites OR question
+    if action_type == 'lk' or 'fv' or 'bfv' or 'qs' or 'atc': # action = like OR favorites OR brand_favorites OR question
         try:
             # phone_number = Phone.objects.exclude(rn_phone_inside_action_with_product__action_type=action_type).\
             #     exclude(rn_phone_inside_action_with_product__product_id=product_id)
             # phone_number = Phone.objects.filter(status_rent='rent').
-            phone_to_exclude = ActionWithProduct.objects.filter(product_id=product_id, action_type='lk', )
+            phone_to_exclude = ActionWithProduct.objects.filter(product_id=product_id, action_type=action_type)
             phone_id_to_exclude_list = [action.phone_number_id for action in phone_to_exclude]
             phone_number = Phone.objects.exclude(pk__in=phone_id_to_exclude_list).\
                 filter(status_rent='rent', end_rent_date__gte=date.today() + timedelta(minutes=10)).first()
@@ -533,57 +539,57 @@ def change_name_profile(driver, name: list):
     save_button = driver.find_elements_by_class_name('c-btn-main')
     save_button[0].click()
 
+
+def add_brand_favorites(driver):
+    """
+    on product page click on brand logo and add to favorite
+    :param driver: instance driver on product page
+    :return:
+    """
+    sleep(uniform(1.15, 1.51))
+    brand_logo = driver.find_elements_by_class_name('brand-logo')
+    brand_logo[0].click()
+    sleep(uniform(1.15, 1.51))
+
+    driver.find_element_by_class_name('i-brand-like').click()
+
 #
-# def add_brand_favorites(driver, product_id, search_request):
-#     phone = find_phone(product_id.id_product, 'bfv')
-#     registration(driver, phone.phone_number)
+#
+# def main():
+#     phone = Phone.objects.get(phone_number='79918992249')
+#     search_request = SearchRequest.objects.get(request='ремень')
+#     product_id = Product.objects.get(id_product='15437795') # 6109083 26541585
+#     size = '110'
+#     delivery_method = 'courier'  # or point
+#
+#     # todo добавить очистку корзины
+#     # todo добавить пол в аккаунт
+#     # todo добавить выбор номера для заказа и добавления действия в корзину
+#     # todo сделать скрипт проверки статуса
+#     # todo добавить автоматическую генерацию имен
+#
+#     name = ('Вася', 'Пупкин')
+#     addresses = ('Саратовская область', 'г Балаково', 'Саратовское Шоссе', '39')
+#     question = 'Когда будет новое поступление?'
+#     flat = '123'
+#     private_house = True
+#     driver_obj = Chromedriver()
+#     driver = driver_obj.start_driver(str(bd) + '/chromedriver')
+#
+#
+#     registration(driver, phone.phone_number[1:11])
+#     # change_name_profile(driver, name)
 #     find_by_request(driver, search_request.request)
 #     look_random_products(driver)
 #     go_on_product_page(driver, product_id.id_product)
-#     sleep(uniform(1.15, 1.51))
-#     brand_logo = driver.find_elements_by_class_name('brand-logo')
-#     brand_logo[0].click()
-#     sleep(uniform(1.15, 1.51))
 #
-#     driver.find_element_by_class_name('i-brand-like').click()
+#     put_like_the_product_on_page(driver, search_request, product_id)
+#     ask_questions(driver, search_request, product_id.id_product, question)
+#     make_order(driver, addresses, product_id, size,
+#     delivery_method, flat, private_house, name, phone, search_request)
 #
-
-
-def main():
-    phone = Phone.objects.get(phone_number='9372268793')
-    search_request = SearchRequest.objects.get(request='ремень')
-    product_id = Product.objects.get(id_product='6109083') # 6109083 26541585
-    size = '110'
-    delivery_method = 'courier'  # or point
-
-    # todo сделать скрипт для постановки лайка бренду
-    # todo добавить пол в аккаунт
-    # todo добавить выбор номера для заказа и добавления действия в корзину
-    # todo сделать скрипт проверки статуса
-    # todo добавить автоматическую генерацию имен
-
-    name = ('Вася', 'Пупкин')
-    addresses = ('Саратовская область', 'г Балаково', 'Саратовское Шоссе', '39')
-    question = 'Когда будет новое поступление?'
-    flat = '123'
-    private_house = True
-    driver_obj = Chromedriver()
-    driver = driver_obj.start_driver(str(bd) + '/chromedriver')
-
-
-    registration(driver, phone.phone_number)
-    # change_name_profile(driver, name)
-    find_by_request(driver, search_request.request)
-    look_random_products(driver)
-    go_on_product_page(driver, product_id.id_product)
-
-    put_like_the_product(driver, search_request, product_id)
-    ask_questions(driver, search_request, product_id.id_product, question)
-    make_order(driver, addresses, product_id, size,
-    delivery_method, flat, private_house, name, phone, search_request)
-
-    driver.quit()
-
-
-if __name__ == '__main__':
-    main()
+#     driver.quit()
+#
+#
+# if __name__ == '__main__':
+#     main()
